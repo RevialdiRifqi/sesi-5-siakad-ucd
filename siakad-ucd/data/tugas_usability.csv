@@ -1,0 +1,16 @@
+responden,tugas,berhasil,waktu_detik
+R1,Lihat IPK,1,6
+R2,Lihat IPK,1,9
+R3,Lihat IPK,1,5
+R4,Lihat IPK,1,12
+R5,Lihat IPK,1,7
+R1,Cari nilai mata kuliah tertentu,1,18
+R2,Cari nilai mata kuliah tertentu,1,25
+R3,Cari nilai mata kuliah tertentu,1,15
+R4,Cari nilai mata kuliah tertentu,0,60
+R5,Cari nilai mata kuliah tertentu,1,20
+R1,Bandingkan IPS antar semester,1,10
+R2,Bandingkan IPS antar semester,1,14
+R3,Bandingkan IPS antar semester,1,9
+R4,Bandingkan IPS antar semester,1,22
+R5,Bandingkan IPS antar semester,1,12

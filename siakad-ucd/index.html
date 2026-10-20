@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIAKAD Mahasiswa — Prototipe UCD</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mut:#5b6475;--pri:#1d4ed8;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;--bd:#dfe3ec}
+@media (prefers-color-scheme:dark){:root{--bg:#0f131c;--card:#181e2b;--tx:#e8ebf2;--mut:#a3acbd;--pri:#7aa2ff;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--bd:#2a3345}}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:var(--card);padding:8px;z-index:9}
+header{background:var(--card);border-bottom:1px solid var(--bd);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+h1{font-size:1.15rem;margin:0}h2{font-size:1rem;margin:0 0 8px}
+main{max-width:1000px;margin:0 auto;padding:16px;display:grid;gap:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+.big{font-size:2rem;font-weight:700;line-height:1.1}.mut{color:var(--mut);font-size:.85rem}
+select,button{font:inherit;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--tx);min-height:44px}
+button{cursor:pointer}:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd)}
+.badge{padding:2px 8px;border-radius:99px;border:1px solid currentColor;font-size:.85rem;font-weight:600}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+svg{width:100%;height:auto}.grid-l{stroke:var(--bd)}.ax{fill:var(--mut);font-size:10px}.val{fill:var(--tx);font-size:10px}
+.ln{fill:none;stroke:var(--pri);stroke-width:2.5}.dot{fill:var(--pri)}.bar{fill:var(--pri)}.thr{stroke:var(--bad);stroke-dasharray:4}
+.sc{fill:var(--pri);fill-opacity:.7;stroke:var(--tx)}
+#detail{min-height:3.5em}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Lewati ke konten utama</a>
+<header>
+  <h1>SIAKAD Mahasiswa</h1>
+  <span class="mut">Budi Santoso · 2023101001 · Teknik Informatika</span>
+</header>
+<main id="main">
+  <section aria-labelledby="t-ring"><h2 id="t-ring">Ringkasan akademik</h2>
+    <div class="cards" id="cards"></div></section>
+
+  <section class="card" aria-label="Filter">
+    <label for="sem"><strong>Tampilkan semester:</strong></label>
+    <select id="sem"></select>
+    <span class="mut"> Grafik dan tabel mengikuti pilihan ini.</span>
+  </section>
+
+  <div class="grid">
+    <section class="card"><h2>Tren IPS per semester</h2><p class="mut">Grafik garis: perubahan dari waktu ke waktu.</p><div id="c-line"></div></section>
+    <section class="card"><h2>Nilai per mata kuliah</h2><p class="mut">Grafik batang: perbandingan antar mata kuliah. Garis merah = batas aman (2,0).</p><div id="c-bar"></div></section>
+    <section class="card"><h2>Kehadiran vs nilai</h2><p class="mut">Scatter plot: hubungan dua variabel.</p><div id="c-sc"></div></section>
+  </div>
+
+  <section class="card"><h2>Rincian mata kuliah</h2>
+    <table><caption class="mut" style="text-align:left">Pilih "Lihat" untuk detail satu mata kuliah.</caption>
+      <thead><tr><th>Mata kuliah</th><th>SKS</th><th>Nilai</th><th>Kehadiran</th><th></th></tr></thead>
+      <tbody id="rows"></tbody></table>
+    <div id="detail" role="status" aria-live="polite" class="mut"></div>
+  </section>
+</main>
+
+<script>
+// Data dummy: [mata kuliah, SKS, nilai (0-4), kehadiran %]
+const D={
+1:[["Pengantar TI",3,3.5,95],["Kalkulus I",3,2.5,80],["Algoritma",4,3.0,90],["Bahasa Inggris",2,3.5,100]],
+2:[["Struktur Data",4,3.0,88],["Kalkulus II",3,2.0,70],["Basis Data",3,3.5,92],["Logika Informatika",2,3.0,85]],
+3:[["PBO",4,3.5,96],["Jaringan Komputer",3,2.5,78],["Statistika",3,3.0,84],["Sistem Operasi",3,3.5,90]],
+4:[["Rekayasa Perangkat Lunak",3,3.5,94],["Pemrograman Web",4,4.0,98],["IMK",3,3.5,92],["Kecerdasan Buatan",3,3.0,87]]};
+const $=id=>document.getElementById(id);
+const ips=s=>D[s].reduce((a,m)=>a+m[1]*m[2],0)/D[s].reduce((a,m)=>a+m[1],0);
+const all=Object.values(D).flat();
+const ipk=all.reduce((a,m)=>a+m[1]*m[2],0)/all.reduce((a,m)=>a+m[1],0);
+const sks=all.reduce((a,m)=>a+m[1],0);
+const huruf=n=>n>=3.5?"A":n>=3?"B":n>=2.5?"B-":n>=2?"C":"D";
+const status=v=>v>=3?["Baik","ok","✔"]:v>=2.5?["Cukup","warn","▲"]:["Perlu perhatian","bad","✖"]; // warna + ikon + teks
+
+function cards(){
+  const [t,c,i]=status(ipk), last=ips(4), prev=ips(3);
+  $("cards").innerHTML=
+   `<div class="card"><div class="mut">IPK</div><div class="big">${ipk.toFixed(2)}</div><span class="badge ${c}">${i} ${t}</span></div>
+    <div class="card"><div class="mut">SKS lulus</div><div class="big">${sks} <small class="mut">/ 144</small></div><div class="mut">Sisa ${144-sks} SKS</div></div>
+    <div class="card"><div class="mut">IPS semester terakhir</div><div class="big">${last.toFixed(2)}</div><div class="mut">${last>=prev?"▲ naik":"▼ turun"} ${Math.abs(last-prev).toFixed(2)} dari semester lalu</div></div>`;
+}
+function line(){
+  const v=[1,2,3,4].map(ips),W=420,H=200,p=34,x=i=>p+i*(W-2*p)/3,y=t=>H-p-t/4*(H-2*p);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tren IPS: ${v.map((a,i)=>'semester '+(i+1)+' '+a.toFixed(2)).join(', ')}">`;
+  for(let t=0;t<=4;t++)s+=`<line class="grid-l" x1="${p}" x2="${W-p}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${p-6}" y="${y(t)+3}" text-anchor="end">${t}</text>`;
+  s+=`<polyline class="ln" points="${v.map((a,i)=>x(i)+','+y(a)).join(' ')}"/>`;
+  v.forEach((a,i)=>s+=`<circle class="dot" cx="${x(i)}" cy="${y(a)}" r="4"/><text class="val" x="${x(i)}" y="${y(a)-9}" text-anchor="middle">${a.toFixed(2)}</text><text class="ax" x="${x(i)}" y="${H-10}" text-anchor="middle">Sem ${i+1}</text>`);
+  $("c-line").innerHTML=s+"</svg>";
+}
+function bar(d){
+  const W=420,rh=34,H=d.length*rh+20,L=150,sx=n=>n/4*(W-L-40);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Nilai per mata kuliah, lihat tabel rincian untuk data lengkap">`;
+  d.forEach((m,i)=>s+=`<text class="ax" x="${L-6}" y="${i*rh+20}" text-anchor="end">${m[0].slice(0,22)}</text><rect class="bar" x="${L}" y="${i*rh+8}" width="${sx(m[2])}" height="20" rx="3"/><text class="val" x="${L+sx(m[2])+5}" y="${i*rh+22}">${m[2].toFixed(1)} (${huruf(m[2])})</text>`);
+  s+=`<line class="thr" x1="${L+sx(2)}" x2="${L+sx(2)}" y1="0" y2="${H}"/>`;
+  $("c-bar").innerHTML=s+"</svg>";
+}
+function scatter(d){
+  const W=420,H=220,p=38,x=h=>p+(h-50)/50*(W-2*p),y=n=>H-p-n/4*(H-2*p);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter kehadiran terhadap nilai">`;
+  [0,1,2,3,4].forEach(t=>s+=`<line class="grid-l" x1="${p}" x2="${W-p}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${p-6}" y="${y(t)+3}" text-anchor="end">${t}</text>`);
+  [50,60,70,80,90,100].forEach(h=>s+=`<text class="ax" x="${x(h)}" y="${H-p+14}" text-anchor="middle">${h}%</text>`);
+  d.forEach(m=>s+=`<circle class="sc" cx="${x(m[3])}" cy="${y(m[2])}" r="6"><title>${m[0]}: hadir ${m[3]}%, nilai ${m[2]}</title></circle>`);
+  $("c-sc").innerHTML=s+"</svg>";
+}
+function rows(d){
+  $("rows").innerHTML=d.map((m,i)=>`<tr><td>${m[0]}</td><td>${m[1]}</td><td>${m[2].toFixed(1)} (${huruf(m[2])})</td><td>${m[3]}%</td><td><button data-i="${i}" aria-label="Lihat detail ${m[0]}">Lihat</button></td></tr>`).join("");
+  $("detail").textContent="";
+  $("rows").onclick=e=>{const b=e.target.closest("button");if(!b)return;const m=d[b.dataset.i];
+    $("detail").textContent=`${m[0]}: ${m[1]} SKS, nilai ${m[2].toFixed(1)} (${huruf(m[2])}), kehadiran ${m[3]}%. ${m[2]<2.5?"Pertimbangkan konsultasi dengan dosen wali.":"Capaian sesuai target."}`};
+}
+function render(){
+  const v=$("sem").value, d=v==="all"?all:D[v];
+  bar(d);scatter(d);rows(d);
+}
+$("sem").innerHTML='<option value="all">Semua semester</option>'+[1,2,3,4].map(s=>`<option value="${s}">Semester ${s}</option>`).join("");
+$("sem").value="4";$("sem").onchange=render;
+cards();line();render();
+</script>
+</body>
+</html>
